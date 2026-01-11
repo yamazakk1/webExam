@@ -1,5 +1,5 @@
 const API_BASE_URL = 'http://exam-api-courses.std-900.ist.mospolytech.ru';
-const API_KEY = 'e3596f3d-6853-4b81-93ea-105ee937f45e'; 
+const API_KEY = 'e3596f3d-6853-4b81-93ea-105ee937f45e';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -106,7 +106,6 @@ function loadCourses() {
             }
             console.log(`Loaded ${currentCourses.length} courses`);
             displayCourses(currentCourses);
-            populateLanguageFilter(currentCourses);
         })
         .catch(error => {
             console.error('Failed to load courses:', error);
@@ -128,6 +127,7 @@ function loadTutors() {
             }
             console.log(`Loaded ${currentTutors.length} tutors`);
             displayTutors(currentTutors);
+            populateLanguageFilter(currentTutors);
         })
         .catch(error => {
             console.error('Failed to load tutors:', error);
@@ -157,17 +157,23 @@ function loadOrders() {
         });
 }
 
-function populateLanguageFilter(courses) {
+function populateLanguageFilter(tutors) {
     const languageSelect = document.getElementById('languageSelect');
     if (!languageSelect) return;
     
     const languages = new Set();
-    courses.forEach(course => {
-        if (course.level) languages.add(course.level);
+    tutors.forEach(tutor => {
+        if (tutor.languages_offered && Array.isArray(tutor.languages_offered)) {
+            tutor.languages_offered.forEach(lang => {
+                if (lang && typeof lang === 'string') {
+                    languages.add(lang);
+                }
+            });
+        }
     });
     
     languageSelect.innerHTML = '<option value="">Все языки</option>';
-    languages.forEach(lang => {
+    Array.from(languages).sort().forEach(lang => {
         const option = document.createElement('option');
         option.value = lang;
         option.textContent = lang;
@@ -264,7 +270,7 @@ function displayTutors(tutors) {
     tableBody.innerHTML = '';
     
     if (filteredTutors.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Репетиторы не найдены</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Репетиторы не найдены</td></tr>';
         return;
     }
     
@@ -288,10 +294,7 @@ function displayTutors(tutors) {
             <td>${tutor.work_experience || 0}</td>
             <td>${tutor.price_per_hour || 0} ₽</td>
             <td>
-                <button class="btn btn-sm btn-outline-dark" onclick="selectTutor(${tutor.id})">
-                    Выбрать
-                </button>
-                <button class="btn btn-sm btn-dark ms-1" onclick="openOrderModal('tutor', ${tutor.id})">
+                <button class="btn btn-sm btn-dark" onclick="openOrderModal('tutor', ${tutor.id})">
                     Записаться
                 </button>
             </td>
@@ -318,22 +321,6 @@ function filterTutors(tutors) {
         
         return matchesLanguage && matchesLevel;
     });
-}
-
-function selectTutor(tutorId) {
-    selectedTutorId = tutorId;
-    currentTutors.forEach(tutor => {
-        const row = document.getElementById(`tutor-${tutor.id}`);
-        if (row) {
-            if (tutor.id === tutorId) {
-                row.classList.add('selected-tutor');
-            } else {
-                row.classList.remove('selected-tutor');
-            }
-        }
-    });
-    
-    openOrderModal('tutor', tutorId);
 }
 
 function openOrderModal(type, id) {
@@ -711,14 +698,10 @@ function submitOrder() {
     const type = document.getElementById('orderType').value;
     const totalPrice = calculatePrice();
     
-    const checkboxes = document.querySelectorAll('.option-checkbox:checked');
+    const checkboxes = document.querySelectorAll('.option-checkbox');
     const options = {};
     checkboxes.forEach(cb => {
-        options[cb.dataset.key] = true;
-    });
-    
-    Object.keys(OPTIONS_CONFIG).forEach(key => {
-        if (!options[key]) options[key] = false;
+        options[cb.dataset.key] = cb.checked;
     });
     
     let orderData = {
@@ -777,7 +760,7 @@ function submitOrder() {
     console.log(`Submitting order: ${method} ${url}`, orderData);
     
     makeApiRequest(url, method, orderData)
-        .then(() => {
+        .then(response => {
             showNotification(orderId ? 'Заявка обновлена' : 'Заявка создана', 'success');
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('orderModal'));
@@ -786,14 +769,10 @@ function submitOrder() {
             document.getElementById('orderForm').reset();
             selectedTutorId = null;
             
-            if (window.location.pathname.includes('account.html')) {
-                loadOrders();
-            } else {
-                loadOrders();
-            }
+            loadOrders();
         })
         .catch(error => {
-            showNotification(error.message || 'Ошибка сохранения заявки', 'danger');
+            showNotification('Ошибка сохранения заявки: ' + error.message, 'danger');
         });
 }
 
@@ -900,8 +879,12 @@ function viewOrder(orderId) {
 }
 
 function editOrder(orderId) {
+    console.log('Starting to edit order:', orderId);
+    
     makeApiRequest(`/api/orders/${orderId}`)
         .then(order => {
+            console.log('Order data received:', order);
+            
             const modal = new bootstrap.Modal(document.getElementById('orderModal'));
             const title = document.getElementById('orderModalTitle');
             
@@ -909,6 +892,7 @@ function editOrder(orderId) {
             document.getElementById('submitOrderBtn').textContent = 'Сохранить';
             
             if (order.course_id > 0) {
+                console.log('Editing course order, course_id:', order.course_id);
                 document.getElementById('orderType').value = 'course';
                 document.getElementById('selectedCourseId').value = order.course_id;
                 document.getElementById('selectedTutorId').value = '';
@@ -918,6 +902,7 @@ function editOrder(orderId) {
                 
                 const course = currentCourses.find(c => c.id === order.course_id);
                 if (course) {
+                    console.log('Course found in cache:', course);
                     populateCourseForm(course);
                     
                     document.getElementById('startDate').value = order.date_start;
@@ -927,11 +912,54 @@ function editOrder(orderId) {
                         const startTimeSelect = document.getElementById('startTime');
                         if (startTimeSelect) {
                             startTimeSelect.value = order.time_start;
+                            console.log('Set start time to:', order.time_start);
                         }
+                        
+                        Object.keys(OPTIONS_CONFIG).forEach(key => {
+                            const checkbox = document.getElementById(`option-${key}`);
+                            if (checkbox) {
+                                checkbox.checked = order[key] === true;
+                                console.log(`Set option ${key} to:`, order[key]);
+                            }
+                        });
+                        
                         calculatePrice();
-                    }, 100);
+                        modal.show();
+                    }, 300);
+                } else {
+                    console.log('Course not in cache, loading from API...');
+                    makeApiRequest(`/api/course/${order.course_id}`)
+                        .then(course => {
+                            console.log('Course loaded from API:', course);
+                            populateCourseForm(course);
+                            
+                            document.getElementById('startDate').value = order.date_start;
+                            document.getElementById('persons').value = order.persons;
+                            
+                            setTimeout(() => {
+                                const startTimeSelect = document.getElementById('startTime');
+                                if (startTimeSelect) {
+                                    startTimeSelect.value = order.time_start;
+                                }
+                                
+                                Object.keys(OPTIONS_CONFIG).forEach(key => {
+                                    const checkbox = document.getElementById(`option-${key}`);
+                                    if (checkbox) {
+                                        checkbox.checked = order[key] === true;
+                                    }
+                                });
+                                
+                                calculatePrice();
+                                modal.show();
+                            }, 300);
+                        })
+                        .catch(error => {
+                            console.error('Error loading course:', error);
+                            showNotification('Ошибка загрузки данных курса', 'danger');
+                        });
                 }
             } else {
+                console.log('Editing tutor order, tutor_id:', order.tutor_id);
                 document.getElementById('orderType').value = 'tutor';
                 document.getElementById('selectedCourseId').value = '';
                 document.getElementById('selectedTutorId').value = order.tutor_id;
@@ -941,6 +969,7 @@ function editOrder(orderId) {
                 
                 const tutor = currentTutors.find(t => t.id === order.tutor_id);
                 if (tutor) {
+                    console.log('Tutor found in cache:', tutor);
                     populateTutorForm(tutor);
                     
                     document.getElementById('tutorStartDate').value = order.date_start;
@@ -948,22 +977,24 @@ function editOrder(orderId) {
                     document.getElementById('tutorDuration').value = order.duration;
                     document.getElementById('tutorPersons').value = order.persons;
                     
+                    Object.keys(OPTIONS_CONFIG).forEach(key => {
+                        const checkbox = document.getElementById(`option-${key}`);
+                        if (checkbox) {
+                            checkbox.checked = order[key] === true;
+                        }
+                    });
+                    
                     calculatePrice();
+                    modal.show();
+                } else {
+                    console.log('Tutor not in cache');
+                    showNotification('Данные репетитора не найдены', 'warning');
                 }
             }
-            
-            Object.keys(OPTIONS_CONFIG).forEach(key => {
-                const checkbox = document.getElementById(`option-${key}`);
-                if (checkbox) {
-                    checkbox.checked = order[key] === true;
-                }
-            });
-            
-            calculatePrice();
-            modal.show();
         })
         .catch(error => {
-            showNotification('Ошибка загрузки заявки', 'danger');
+            console.error('Error loading order:', error);
+            showNotification('Ошибка загрузки заявки: ' + error.message, 'danger');
         });
 }
 
@@ -1033,7 +1064,7 @@ function changePage(type, page) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, initializing...');
     
-    if (API_KEY) {
+    if (API_KEY && API_KEY !== 'ваш_api_ключ') {
         console.log('API Key found, loading data...');
         
         if (window.location.pathname.includes('account.html')) {

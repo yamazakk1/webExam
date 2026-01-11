@@ -27,25 +27,20 @@
         <div id="notification-area"></div>
     </div>
 
-<main class="container my-5 flex-grow-1">
-    <div class="row">
-        <div class="col-lg-3 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <div class="mb-3" style="height: 100px; width: 100px; margin: 0 auto;">
-                        <img src="sources/shkila.jpg" 
-                             alt="Аватар" class="rounded-circle h-100 w-100 object-fit-cover">
-                    </div>
-                    <h5 class="card-title" id="userName">Студент</h5>
-                    <p class="text-muted small" id="userInfo"></p>
-                    <div class="list-group list-group-flush">
-                        <a href="#" class="list-group-item list-group-item-action active">
-                            <i class="bi bi-journal-text me-2"></i>Мои заявки
-                        </a>
+    <main class="container my-5 flex-grow-1">
+        <div class="row">
+            <div class="col-lg-3 mb-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-3 mx-auto" style="max-width: 150px;">
+                            <img src="sources/shkila.jpg" 
+                                 alt="Аватар" class="img-fluid rounded">
+                        </div>
+                        <h5 class="card-title" id="userName">Студент</h5>
+                        <p class="text-muted small" id="userInfo"></p>
                     </div>
                 </div>
             </div>
-        </div>
 
             <div class="col-lg-9">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -86,6 +81,190 @@
             </div>
         </div>
     </main>
+
+    <!-- Модальное окно оформления заявки (добавлено для личного кабинета) -->
+    <div class="modal fade" id="orderModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderModalTitle">Редактирование заявки</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <input type="hidden" id="orderId">
+                        <input type="hidden" id="orderType">
+                        <input type="hidden" id="selectedCourseId">
+                        <input type="hidden" id="selectedTutorId">
+                        
+                        <div id="courseFields">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Название курса</label>
+                                    <input type="text" class="form-control" id="courseName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Преподаватель</label>
+                                    <input type="text" class="form-control" id="courseTeacher" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label">Дата начала</label>
+                                    <select class="form-select" id="startDate" required>
+                                        <option value="">Выберите дату</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="startTime" class="form-label">Время занятия</label>
+                                    <select class="form-select" id="startTime" required disabled>
+                                        <option value="">Выберите время</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Продолжительность</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="durationWeeks" readonly>
+                                        <span class="input-group-text">недель</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата окончания</label>
+                                    <input type="text" class="form-control" id="endDate" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="persons" class="form-label">Количество студентов</label>
+                                    <input type="number" class="form-control" id="persons" min="1" max="20" value="1" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Часов в неделю</label>
+                                    <input type="text" class="form-control" id="hoursPerWeek" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Длительность занятия</label>
+                                    <input type="text" class="form-control" id="lessonDuration" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Стоимость за час</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="hourlyPrice" readonly>
+                                        <span class="input-group-text">₽/час</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="tutorFields" style="display: none;">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Репетитор</label>
+                                    <input type="text" class="form-control" id="tutorName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tutorDuration" class="form-label">Продолжительность (часов)</label>
+                                    <input type="number" class="form-control" id="tutorDuration" min="1" max="40" value="1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="tutorStartDate" class="form-label">Дата занятия</label>
+                                    <input type="date" class="form-control" id="tutorStartDate" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tutorStartTime" class="form-label">Время начала</label>
+                                    <select class="form-select" id="tutorStartTime" required>
+                                        <option value="">Выберите время</option>
+                                        <option value="09:00">09:00</option>
+                                        <option value="10:00">10:00</option>
+                                        <option value="11:00">11:00</option>
+                                        <option value="12:00">12:00</option>
+                                        <option value="14:00">14:00</option>
+                                        <option value="15:00">15:00</option>
+                                        <option value="16:00">16:00</option>
+                                        <option value="17:00">17:00</option>
+                                        <option value="18:00">18:00</option>
+                                        <option value="19:00">19:00</option>
+                                        <option value="20:00">20:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="tutorPersons" class="form-label">Количество студентов</label>
+                                    <input type="number" class="form-control" id="tutorPersons" min="1" max="20" value="1" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Почасовая ставка</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="tutorHourlyPrice" readonly>
+                                        <span class="input-group-text">₽/час</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header">Дополнительные опции</div>
+                            <div class="card-body">
+                                <div class="row" id="optionsContainer"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">Расчет стоимости</div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-6">Базовая стоимость:</div>
+                                    <div class="col-6 text-end" id="basePrice">0 ₽</div>
+                                </div>
+                                <div id="discountsContainer"></div>
+                                <div id="surchargesContainer"></div>
+                                <div class="row mt-3 pt-3 border-top">
+                                    <div class="col-6"><strong>Итого:</strong></div>
+                                    <div class="col-6 text-end"><strong id="totalPrice">0 ₽</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-dark" id="submitOrderBtn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтверждение удаления</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите удалить заявку?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Да</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <footer class="bg-dark text-white py-4 mt-auto">
         <div class="container">
